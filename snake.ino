@@ -97,10 +97,12 @@ void resetMap()
 
 void logo()
 {
+  //Write the logo
   tft.background(10, 10, 250);
   tft.setTextSize(4);
   tft.text("Snake", 14, 10);
   
+  //Wait until the user presses gameReset
   while(true)
   {
     if (digitalRead(gameReset) == 0)
@@ -117,10 +119,10 @@ int a = 0;
   
 void game()
 {
+  //Main game loop
   tft.background(50, 50, 250);
-  //tft.fill(0,0,0);
-  //tft.rect(0, 127, 160, 128);
   
+  //Spawn apple in the beginning
   if (appleX == 0 && appleY == 0)
   {
      spawnApple(); 
@@ -132,20 +134,19 @@ void game()
   updateMap();
   draw();
   
+  //Adjust this to change the game speed
   delay(250);
 }
 
 void spawnApple()
 {
-  byte randX = (byte)random(1, 31);
-  byte randY = (byte)random(1, 24);
+  appleX = (byte)random(1, 31);
+  appleY = (byte)random(1, 24);
   Serial.print("RANDOM: x=");
-  Serial.print(randX);
+  Serial.print(appleX);
   Serial.print(", y=");
-  Serial.print(randY);
+  Serial.print(appleY);
   
-  appleX = randX;
-  appleY = randY;
 }
 
 void handleInput()
@@ -181,37 +182,43 @@ void updateMap()
    byte xi = 0;
    byte yi = 0;
   
+   //Go through each byte in mapGrid
    for (short i = 0; i < 800; i++)
-   {
+  {
      
-     if (x == xi && mapGrid[i] > 0 && y == yi)
-     {
-        gameState = GameOver; 
-     }
-     
-     if (xi == x && yi == y)
-     {
-        mapGrid[i] = snakeLenght; 
-     }
-     
+      //If the snakes collides with itself
+      if (x == xi && mapGrid[i] > 0 && y == yi)
+      {
+         gameState = GameOver; 
+      }
+      
+      //The point the snake goes on
+      if (xi == x && yi == y)
+      {
+         mapGrid[i] = snakeLenght; 
+      }
+      
+      
+      //Keep track on the x and y in mapGrid
       xi++;
       if (xi == 32)
       {
         xi = 0;
         yi++; 
       }
-   } 
+  } 
 }
 
 void timerDecrease()
 {
-   for (short i = 0; i < 800; i++)
+  //Decrease each byte in mapGrid with one if it's > 0
+  for (short i = 0; i < 800; i++)
+  {
+    if (mapGrid[i] > 0)
     {
-      if (mapGrid[i] > 0)
-      {
          mapGrid[i] -= 1; 
-      }
-    } 
+    }
+  } 
 }
 
 void movement()
@@ -276,7 +283,7 @@ void movement()
 
 void wallCollision()
 {
-  
+  //Doesn't work, should be removed
   if (x == 32)
   {
      x = 0; 
@@ -306,25 +313,25 @@ void wallCollision()
 
 void draw()
 {
-   byte x = 0;
-   byte y = 0;
-   for (short i = 0; i < 800; i++)
-   {
+  drawApple(appleX, appleY);
+  
+  byte x = 0;
+  byte y = 0;
+  
+  for (short i = 0; i < 800; i++)
+  {
+    if (mapGrid[i] > 0)
+    {
+      drawSnakePoint(x, y);
+    }
      
-      if (mapGrid[i] > 0)
-      {
-        drawSnakePoint(x, y);
-      }
-     
-      x++;
-      if (x == 32)
-      {
-        x = 0;
-        y++; 
-      }
-   } 
-   
-   drawApple(appleX, appleY);
+    x++;
+    if (x == 32)
+    {
+      x = 0;
+      y++; 
+    }
+  } 
 }
 
 void drawApple(byte x, byte y)
@@ -347,13 +354,12 @@ void drawApple(byte x, byte y)
 
 void drawSnakePoint(byte x, byte y)
 {
-  tft.fill(20, 20, 20);
-  tft.stroke(20, 20, 20);
-  
+  //Screen resolution: 160 x 128
+  //Game grid size: 32 x 25 
   const byte tileWidth = 5;
-  //160 x 128 - screen res
-  //32 x 25 
+
   tft.fill(20, 200, 20);
+  //Draw a 5x5 square (should be replaced with rect)
   for (byte xi = 0; xi < tileWidth; xi++)
   {
     for (byte yi = 0; yi < tileWidth; yi++)
