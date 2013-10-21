@@ -1,8 +1,7 @@
 //snake-for-arduino
 //Licenced under the GPL v2 licence
-#include <TFT.h>  // Arduino LCD library
 #include <SPI.h>
-#include <SD.h>
+#include <TFT.h>  // Arduino LCD library
 
 enum GameState{Logo, Game, GameOver} gameState;
 
@@ -22,11 +21,12 @@ byte mapGrid[800];
 //Snake variables
 byte x = 5;
 byte y = 5;
-byte snakeLenght = 15;
+byte startSnakeLenght = 4;
+byte snakeLenght = startSnakeLenght;
 
 //Apple variables
-byte appleX = 0;
-byte appleY = 0;
+byte appleX = 40;
+byte appleY = 40;
 
 enum SnakeDir{Up, Down, Right, Left} snakeDir = Right;
 
@@ -39,7 +39,6 @@ void setup() {
   tft.begin();
   tft.background(10, 10, 250);
   Serial.begin(9600);
-
 
 }
 
@@ -62,21 +61,30 @@ void loop() {
 
 void gameOver()
 {
+   tft.stroke(0, 255, 0);
+  tft.fill(0, 255, 0);
+  
   tft.setTextSize(2);
-  tft.text("GAME OVER", 10, 10);
+  tft.text("GAME OVER", 28, 40);
   
   char pointChars[4];
   String pointVal = String(snakeLenght);
   pointVal.toCharArray(pointChars, 4);
   
-  tft.text(pointChars, 10, 30);
+  tft.setTextSize(2);
+  tft.text("Score:", 37, 60);
+  tft.text(pointChars, 107, 60);
+  
+  tft.setTextSize(1);
+  tft.text("[D6] to restart", 15, 110);
   
   while(true)
   {
-     if (digitalRead(gameReset) == 0)
+    if (digitalRead(gameReset) == 0)
     {
-       gameState = Game;
        resetGame();
+       gameState = Game;
+       break;
     } 
   }
   
@@ -84,7 +92,13 @@ void gameOver()
 
 void resetGame()
 {
-   //Reset coordinates etc. 
+   snakeLenght = startSnakeLenght;
+   x = 5;
+   y = 5;
+   appleX = 40;
+   appleY = 40;
+   snakeDir = Right;
+   resetMap();
 }
 
 void resetMap()
@@ -98,9 +112,29 @@ void resetMap()
 void logo()
 {
   //Write the logo
-  tft.background(10, 10, 250);
+  tft.background(129, 150, 192);
+  
+  tft.stroke(0, 255, 0);
+  tft.fill(0, 255, 0);
+  
   tft.setTextSize(4);
-  tft.text("Snake", 14, 10);
+  tft.text("Snake", 20, 10);
+  
+  tft.setTextSize(2);
+  tft.text("for Arduino", 12, 45);
+  
+  tft.setTextSize(1);
+  tft.text("Stas Zwierzchowski", 25, 75);
+  tft.text("Daniel Back", 45, 85);
+  
+  tft.text("Herrgardsgymnasiet 2013", 12, 105);
+  
+  delay(4000);
+  tft.background(129, 150, 192);
+  tft.setTextSize(2);
+  tft.text("Press [D6]", 20, 45);
+  tft.text("to start", 30, 65);
+  
   
   //Wait until the user presses gameReset
   while(true)
@@ -115,18 +149,30 @@ void logo()
 
 }
 
-int a = 0;
   
 void game()
 {
   //Main game loop
-  tft.background(50, 50, 250);
+  //tft.background(50, 50, 250);
+  tft.background(129, 150, 192);
   
   //Spawn apple in the beginning
-  if (appleX == 0 && appleY == 0)
+  if (appleX == 40 && appleY == 40)
   {
      spawnApple(); 
   }
+  
+  //Apple with snake collision
+  if (x == appleX && y == appleY)
+  {
+    //Reset apple coordinates
+    appleX = 40;
+    appleY = 40;
+    
+    //MAke snake longer
+    snakeLenght++;
+  }
+  Serial.println(snakeLenght);
   
   handleInput();
   movement();
@@ -336,20 +382,22 @@ void draw()
 
 void drawApple(byte x, byte y)
 {
-  tft.fill(200, 20, 20);
+  //Red
+  tft.stroke(200, 20, 20);
+  tft.fill  (200, 20, 20);
   
-  for (byte xi = 0; xi < 5; xi++)
-  {
-    for (byte yi = 2; yi < 4; yi++)
-    {    
-      tft.point((x * 5) + xi, (y * 5) + yi);
-    }
-  }
+  //2x5 middle rectangle
+  tft.rect((x * 5) + 0, (y * 5) + 2, 5, 2);
   
-  //TODO: Gör klart äpplet
+  //Bottom 3 pixels
+  tft.rect((x * 5) + 1, (y * 5) + 4, 3, 1);
   
-  tft.fill(20, 200, 20);
-  tft.point((x * 5) + 1, y * 5);
+  //Top 3 pixels
+  tft.rect((x * 5) + 1, (y * 5) + 1, 3, 1);
+  
+  //Top 2 green pixels
+  tft.stroke(20, 200, 20);
+  tft.rect((x * 5) + 1, (y * 5) + 0, 2, 1);
 }
 
 void drawSnakePoint(byte x, byte y)
@@ -358,13 +406,8 @@ void drawSnakePoint(byte x, byte y)
   //Game grid size: 32 x 25 
   const byte tileWidth = 5;
 
-  tft.fill(20, 200, 20);
-  //Draw a 5x5 square (should be replaced with rect)
-  for (byte xi = 0; xi < tileWidth; xi++)
-  {
-    for (byte yi = 0; yi < tileWidth; yi++)
-    {    
-      tft.point((x * tileWidth) + xi, (y * tileWidth) + yi);
-    }
-  }
+  tft.stroke(20, 100, 20);
+  tft.fill  (20, 100, 20);
+  //Draw a 5x5 square
+  tft.rect(x * 5, y * 5, 5, 5);
 }
